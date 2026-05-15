@@ -1,0 +1,1128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>자전거 조편성 보드</title>
+  <style>
+    :root {
+      --bg: #f5f6f4;
+      --surface: #ffffff;
+      --ink: #17211d;
+      --muted: #66736e;
+      --line: #d9dfdb;
+      --brand: #16685b;
+      --brand-dark: #0e4a41;
+      --leader: #d99021;
+      --sweeper: #3478a4;
+      --female: #c05294;
+      --shadow: 0 14px 32px rgba(20, 37, 32, .08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: #b8c5c0;
+      box-shadow: 0 8px 18px rgba(20, 37, 32, .08);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, .9);
+      backdrop-filter: blur(12px);
+    }
+
+    .topbar {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 14px 18px;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .status {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .name-form,
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .name-form input {
+      width: 170px;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 8px 10px;
+      outline: none;
+      background: white;
+      color: var(--ink);
+    }
+
+    .name-form input:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(22, 104, 91, .14);
+    }
+
+    .primary {
+      padding: 0 14px;
+      border-color: var(--brand);
+      background: var(--brand);
+      color: white;
+      font-weight: 900;
+    }
+
+    .danger {
+      color: #b9483d;
+      border-color: #e8c7c2;
+    }
+
+    main {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(260px, 1fr));
+      gap: 14px;
+      align-items: start;
+    }
+
+    .column {
+      min-height: 560px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfb;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .column.drag-over {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(22, 104, 91, .14), var(--shadow);
+    }
+
+    .column.column-over {
+      border-color: var(--leader);
+      box-shadow: 0 0 0 3px rgba(217, 144, 33, .18), var(--shadow);
+    }
+
+    .column.dragging {
+      opacity: .38;
+    }
+
+    .column-head {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--surface);
+    }
+
+    .column-title {
+      font-size: 20px;
+      font-weight: 950;
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      width: 100%;
+      min-width: 0;
+      padding: 4px 0;
+      outline: none;
+    }
+
+    .column-tools {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .grip {
+      width: 42px;
+      min-height: 38px;
+      display: inline-grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 22px;
+      font-weight: 950;
+      touch-action: none;
+      user-select: none;
+      cursor: grab;
+    }
+
+    .count {
+      min-width: 42px;
+      height: 38px;
+      padding: 0 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: #eef3f0;
+      color: var(--brand-dark);
+      font-size: 18px;
+      font-weight: 950;
+    }
+
+    .cards {
+      min-height: 500px;
+      padding: 12px;
+      display: grid;
+      align-content: start;
+      gap: 10px;
+    }
+
+    .card {
+      min-height: 58px;
+      padding: 12px 10px 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 5px 12px rgba(20, 37, 32, .05);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .card.dragging {
+      opacity: .35;
+    }
+
+    .card.leader {
+      border-color: #e0ad50;
+      background: #fff8eb;
+    }
+
+    .card.sweeper {
+      border-color: #7aa6c8;
+      background: #eef7fd;
+    }
+
+    .card.female {
+      border-color: #e483ba;
+      background: #fff0f7;
+    }
+
+    .card-name {
+      min-width: 0;
+      font-size: 21px;
+      font-weight: 950;
+      overflow-wrap: anywhere;
+    }
+
+    .badges {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-bottom: 5px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      color: white;
+      font-size: 13px;
+      font-weight: 950;
+      line-height: 1;
+    }
+
+    .badge.leader { background: var(--leader); }
+    .badge.sweeper { background: var(--sweeper); }
+
+    .rotation-label {
+      color: var(--brand-dark);
+      font-size: 16px;
+      font-weight: 950;
+    }
+
+    .female-label {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: var(--female);
+      color: white;
+      font-size: 15px;
+      font-weight: 950;
+    }
+
+    .card-actions {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .dot-btn,
+    .check-btn {
+      width: 42px;
+      min-height: 42px;
+      display: inline-grid;
+      place-items: center;
+      font-weight: 950;
+    }
+
+    .dot-btn span {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #b9c2be;
+    }
+
+    .dot-btn.active {
+      border-color: var(--female);
+      background: var(--female);
+    }
+
+    .dot-btn.active span {
+      background: white;
+    }
+
+    .check-btn.active {
+      border-color: var(--brand);
+      background: var(--brand);
+      color: white;
+    }
+
+    .drop-hint {
+      min-height: 48px;
+      border: 2px dashed #bfd0ca;
+      border-radius: 8px;
+      background: rgba(22, 104, 91, .06);
+    }
+
+    .ghost {
+      position: fixed;
+      z-index: 50;
+      width: var(--ghost-width);
+      pointer-events: none;
+      opacity: .95;
+      transform: translate(-50%, -50%) rotate(-1deg);
+      box-shadow: 0 20px 38px rgba(20, 37, 32, .2);
+    }
+
+    .column-ghost {
+      position: fixed;
+      z-index: 45;
+      width: var(--ghost-width);
+      pointer-events: none;
+      opacity: .92;
+      transform: translate(-50%, -24px) rotate(-1deg);
+      box-shadow: 0 20px 38px rgba(20, 37, 32, .2);
+    }
+
+    body.dragging-now {
+      cursor: grabbing;
+      user-select: none;
+    }
+
+    .export-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(18, 29, 25, .36);
+    }
+
+    .export-panel.open {
+      display: flex;
+    }
+
+    .export-dialog {
+      width: min(680px, 100%);
+      max-height: min(780px, calc(100vh - 36px));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 24px 60px rgba(18, 29, 25, .24);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .export-head,
+    .export-actions {
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .export-actions {
+      border-top: 1px solid var(--line);
+      border-bottom: 0;
+      justify-content: flex-end;
+    }
+
+    .export-title {
+      font-size: 15px;
+      font-weight: 950;
+    }
+
+    .export-text {
+      width: 100%;
+      min-height: 430px;
+      border: 0;
+      resize: none;
+      padding: 14px;
+      outline: none;
+      color: var(--ink);
+      background: #fbfcfb;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      z-index: 90;
+      max-width: calc(100vw - 24px);
+      padding: 10px 14px;
+      border-radius: 7px;
+      background: #15211d;
+      color: white;
+      font-size: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    @media (max-width: 1180px) {
+      .board { grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+      .topbar { grid-template-columns: 1fr; align-items: stretch; }
+      .name-form, .toolbar { justify-content: stretch; }
+      .toolbar button, .name-form button, .name-form input { flex: 1 1 auto; }
+    }
+
+    @media (max-width: 720px) {
+      main { padding: 12px; }
+      .board { grid-template-columns: 1fr; }
+      .column { min-height: 320px; }
+      .cards { min-height: 250px; }
+      .card-name { font-size: 19px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div>
+        <h1>자전거 조편성</h1>
+        <div class="status" id="status">총 0명</div>
+      </div>
+      <form class="name-form" id="nameForm">
+        <input id="nameInput" autocomplete="off" placeholder="이름 추가">
+        <button class="primary" type="submit">추가</button>
+      </form>
+      <div class="toolbar">
+        <button id="copyBtn" type="button">텍스트 내보내기</button>
+        <button id="namesBtn" type="button">이름만 내보내기</button>
+        <button id="resetBtn" class="danger" type="button">초기화</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="board" id="board"></div>
+  </main>
+
+  <div class="export-panel" id="exportPanel" aria-hidden="true">
+    <div class="export-dialog" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
+      <div class="export-head">
+        <div class="export-title" id="exportTitle">텍스트 내보내기</div>
+        <button id="exportCloseBtn" type="button">닫기</button>
+      </div>
+      <textarea class="export-text" id="exportText" readonly></textarea>
+      <div class="export-actions">
+        <button id="exportCopyBtn" class="primary" type="button">복사</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const boardKey = "bike-groups-board-fresh-v1";
+    const rotationKey = "bike-groups-board-fresh-rotation-v1";
+    const femaleKey = "bike-groups-board-fresh-female-v1";
+    const initialBoard = [
+      { id: "group-1", title: "1조", cards: ["인터메조", "정인섭(세아)", "라몬(변용현)", "청수(게스트)", "박현진", "송민아", "최명일"] },
+      { id: "group-2", title: "2조", cards: ["신승식", "김태형", "아토(최혜경)", "신진희", "김민정", "Tyche유숙", "권태열"] },
+      { id: "group-3", title: "3조", cards: ["강명호", "경호진", "윤정일", "범생이(나기종)", "장지연(게스트)", "현유", "주하", "이찬진"] },
+      { id: "waiting", title: "대기자", cards: [] }
+    ];
+    const initialRotationNames = ["정인섭(세아)", "김태형", "경호진"];
+    const initialFemaleNames = ["박현진", "송민아", "아토(최혜경)", "신진희", "김민정", "Tyche유숙", "장지연(게스트)", "현유", "주하"];
+
+    let board = loadBoard();
+    let rotationNames = loadNameSet(rotationKey, initialRotationNames);
+    let femaleNames = loadNameSet(femaleKey, initialFemaleNames);
+    let cardDrag = null;
+    let columnDrag = null;
+
+    const boardEl = document.querySelector("#board");
+    const statusEl = document.querySelector("#status");
+    const toastEl = document.querySelector("#toast");
+    const nameInput = document.querySelector("#nameInput");
+    const exportPanel = document.querySelector("#exportPanel");
+    const exportText = document.querySelector("#exportText");
+    const exportTitle = document.querySelector("#exportTitle");
+
+    render();
+
+    document.querySelector("#nameForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const name = cleanName(nameInput.value);
+      if (!name) return nameInput.focus();
+      if (board.some((column) => column.cards.some((card) => cleanName(card) === name))) {
+        showToast("이미 있는 이름입니다.");
+        nameInput.select();
+        return;
+      }
+      board[board.length - 1].cards.push(name);
+      nameInput.value = "";
+      saveBoard();
+      render();
+      showToast("대기자에 추가했습니다.");
+    });
+
+    document.querySelector("#resetBtn").addEventListener("click", () => {
+      if (!confirm("처음 조편성으로 되돌릴까요?")) return;
+      board = structuredClone(initialBoard);
+      rotationNames = new Set(initialRotationNames);
+      femaleNames = new Set(initialFemaleNames);
+      saveAll();
+      render();
+      showToast("초기화했습니다.");
+    });
+
+    document.querySelector("#copyBtn").addEventListener("click", () => {
+      openExport("텍스트 내보내기", buildExportText());
+    });
+
+    document.querySelector("#namesBtn").addEventListener("click", () => {
+      openExport("참가자 이름만 내보내기", board.flatMap((column) => column.cards).join("\n"));
+    });
+
+    document.querySelector("#exportCloseBtn").addEventListener("click", closeExport);
+    exportPanel.addEventListener("click", (event) => {
+      if (event.target === exportPanel) closeExport();
+    });
+    document.querySelector("#exportCopyBtn").addEventListener("click", async () => {
+      const ok = await copyText(exportText.value);
+      showToast(ok ? "복사했습니다." : "복사 권한을 확인해주세요.");
+    });
+
+    function render() {
+      clearInvalidRotations();
+      boardEl.innerHTML = board.map((column, columnIndex) => `
+        <section class="column" data-column-id="${escapeHtml(column.id)}" data-column-index="${columnIndex}">
+          <div class="column-head">
+            <input class="column-title" value="${escapeHtml(column.title)}" aria-label="조 이름" data-title-index="${columnIndex}">
+            <div class="column-tools">
+              <button class="grip" type="button" title="조 이동" aria-label="${escapeHtml(column.title)} 이동" data-column-grip="${columnIndex}">↔</button>
+              <span class="count">${column.cards.length}</span>
+            </div>
+          </div>
+          <div class="cards" data-cards="${escapeHtml(column.id)}">
+            ${column.cards.map((name, index) => renderCard(name, column.id, index, column.cards.length)).join("")}
+          </div>
+        </section>
+      `).join("");
+
+      boardEl.querySelectorAll(".card").forEach((card) => {
+        card.addEventListener("pointerdown", onCardPointerDown);
+        card.addEventListener("mousedown", onCardMouseDown);
+        card.addEventListener("touchstart", onCardTouchStart, { passive: false });
+      });
+
+      boardEl.querySelectorAll("[data-column-grip]").forEach((grip) => {
+        grip.addEventListener("pointerdown", onColumnPointerDown);
+        grip.addEventListener("mousedown", onColumnMouseDown);
+        grip.addEventListener("touchstart", onColumnTouchStart, { passive: false });
+      });
+
+      boardEl.querySelectorAll("[data-female]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          toggleSet(femaleNames, button.dataset.female);
+          saveNameSet(femaleKey, femaleNames);
+          render();
+        });
+      });
+
+      boardEl.querySelectorAll("[data-rotate]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          toggleSet(rotationNames, button.dataset.rotate);
+          saveNameSet(rotationKey, rotationNames);
+          render();
+        });
+      });
+
+      boardEl.querySelectorAll("[data-title-index]").forEach((input) => {
+        input.addEventListener("change", () => {
+          const index = Number(input.dataset.titleIndex);
+          board[index].title = cleanName(input.value) || board[index].title;
+          saveBoard();
+          render();
+        });
+      });
+
+      const total = board.reduce((sum, column) => sum + column.cards.length, 0);
+      const groups = board.filter((column) => column.id !== "waiting").length;
+      statusEl.textContent = `총 ${total}명 · ${groups}개조`;
+    }
+
+    function renderCard(name, columnId, index, count) {
+      const isWaiting = columnId === "waiting";
+      const isLeader = !isWaiting && index === 0;
+      const isSweeper = !isWaiting && index === count - 1;
+      const isFemale = femaleNames.has(name);
+      const canRotate = !isWaiting && index === 1 && !isSweeper;
+      const isRotation = canRotate && rotationNames.has(name);
+      const badges = [
+        isLeader ? '<span class="badge leader">★ 조장</span>' : "",
+        isSweeper ? '<span class="badge sweeper">◆ 후미</span>' : ""
+      ].join("");
+      return `
+        <article class="card${isLeader ? " leader" : ""}${isSweeper ? " sweeper" : ""}${isFemale ? " female" : ""}" data-column="${escapeHtml(columnId)}" data-index="${index}">
+          <div>
+            ${badges ? `<div class="badges">${badges}</div>` : ""}
+            <div class="card-name">${escapeHtml(name)}${isFemale ? ' <span class="female-label">👩</span>' : ""}${isRotation ? ' <span class="rotation-label">(로테이션)</span>' : ""}</div>
+          </div>
+          <div class="card-actions">
+            <button class="dot-btn${isFemale ? " active" : ""}" type="button" title="여자 표시" aria-label="${escapeHtml(name)} 여자 표시" data-female="${escapeHtml(name)}"><span></span></button>
+            ${canRotate ? `<button class="check-btn${isRotation ? " active" : ""}" type="button" title="로테이션 표시" aria-label="${escapeHtml(name)} 로테이션 표시" data-rotate="${escapeHtml(name)}">✓</button>` : ""}
+          </div>
+        </article>
+      `;
+    }
+
+    function onCardPointerDown(event) {
+      if (event.button !== 0 || event.target.closest("button, input")) return;
+      beginCardDrag(event.currentTarget, event.clientX, event.clientY);
+      addPointerListeners(onCardPointerMove, onCardPointerUp, onCardPointerCancel);
+      event.preventDefault();
+    }
+
+    function onCardMouseDown(event) {
+      if (cardDrag || event.button !== 0 || event.target.closest("button, input")) return;
+      beginCardDrag(event.currentTarget, event.clientX, event.clientY);
+      window.addEventListener("mousemove", onCardPointerMove, { passive: false });
+      window.addEventListener("mouseup", onCardPointerUp);
+      event.preventDefault();
+    }
+
+    function onCardTouchStart(event) {
+      if (cardDrag || event.target.closest("button, input")) return;
+      const touch = event.touches[0];
+      if (!touch) return;
+      beginCardDrag(event.currentTarget, touch.clientX, touch.clientY);
+      window.addEventListener("touchmove", onCardTouchMove, { passive: false });
+      window.addEventListener("touchend", onCardTouchEnd);
+      window.addEventListener("touchcancel", onCardPointerCancel);
+      event.preventDefault();
+    }
+
+    function beginCardDrag(card, x, y) {
+      const rect = card.getBoundingClientRect();
+      cardDrag = {
+        fromColumnId: card.dataset.column,
+        fromIndex: Number(card.dataset.index),
+        startX: x,
+        startY: y,
+        card,
+        ghost: null,
+        width: rect.width,
+        active: false
+      };
+    }
+
+    function onCardPointerMove(event) {
+      if (!cardDrag) return;
+      const distance = Math.hypot(event.clientX - cardDrag.startX, event.clientY - cardDrag.startY);
+      if (!cardDrag.active && distance < 4) return;
+      if (!cardDrag.active) startCardDrag(event);
+      moveGhost(cardDrag.ghost, event.clientX, event.clientY);
+      showCardDrop(event.clientX, event.clientY);
+      event.preventDefault();
+    }
+
+    function onCardTouchMove(event) {
+      const touch = event.touches[0];
+      if (!touch) return;
+      onCardPointerMove({
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        preventDefault: () => event.preventDefault()
+      });
+    }
+
+    function onCardTouchEnd(event) {
+      const touch = event.changedTouches[0] || event.touches[0];
+      if (!touch) {
+        cleanupCardDrag();
+        return;
+      }
+      onCardPointerUp({ clientX: touch.clientX, clientY: touch.clientY });
+    }
+
+    function startCardDrag(event) {
+      cardDrag.active = true;
+      cardDrag.card.classList.add("dragging");
+      cardDrag.ghost = cardDrag.card.cloneNode(true);
+      cardDrag.ghost.classList.add("ghost");
+      cardDrag.ghost.style.setProperty("--ghost-width", `${cardDrag.width}px`);
+      document.body.appendChild(cardDrag.ghost);
+      document.body.classList.add("dragging-now");
+      moveGhost(cardDrag.ghost, event.clientX, event.clientY);
+    }
+
+    function onCardPointerUp(event) {
+      if (!cardDrag) return cleanupCardDrag();
+      const drop = cardDrag.active ? findCardDrop(event.clientX, event.clientY) : null;
+      const payload = cardDrag;
+      cleanupCardDrag();
+      if (!drop) return;
+      moveCard(payload.fromColumnId, payload.fromIndex, drop.columnId, drop.index);
+    }
+
+    function onCardPointerCancel() {
+      cleanupCardDrag();
+    }
+
+    function cleanupCardDrag() {
+      removePointerListeners(onCardPointerMove, onCardPointerUp, onCardPointerCancel);
+      window.removeEventListener("mousemove", onCardPointerMove);
+      window.removeEventListener("mouseup", onCardPointerUp);
+      window.removeEventListener("touchmove", onCardTouchMove);
+      window.removeEventListener("touchend", onCardTouchEnd);
+      window.removeEventListener("touchcancel", onCardPointerCancel);
+      cardDrag?.card.classList.remove("dragging");
+      cardDrag?.ghost?.remove();
+      boardEl.querySelectorAll(".column").forEach((column) => column.classList.remove("drag-over"));
+      boardEl.querySelectorAll(".drop-hint").forEach((hint) => hint.remove());
+      document.body.classList.remove("dragging-now");
+      cardDrag = null;
+    }
+
+    function moveCard(fromColumnId, fromIndex, targetColumnId, targetIndex) {
+      const fromColumn = board.find((column) => column.id === fromColumnId);
+      const targetColumn = board.find((column) => column.id === targetColumnId);
+      if (!fromColumn || !targetColumn) return;
+      const [name] = fromColumn.cards.splice(fromIndex, 1);
+      if (!name) return;
+      const adjusted = fromColumn === targetColumn && fromIndex < targetIndex ? targetIndex - 1 : targetIndex;
+      targetColumn.cards.splice(Math.max(0, adjusted), 0, name);
+      saveBoard();
+      render();
+    }
+
+    function showCardDrop(x, y) {
+      boardEl.querySelectorAll(".column").forEach((column) => column.classList.remove("drag-over"));
+      boardEl.querySelectorAll(".drop-hint").forEach((hint) => hint.remove());
+      const drop = findCardDrop(x, y);
+      if (!drop) return;
+      drop.cards.closest(".column")?.classList.add("drag-over");
+      const hint = document.createElement("div");
+      hint.className = "drop-hint";
+      const cards = [...drop.cards.querySelectorAll(".card:not(.dragging)")];
+      if (drop.index >= cards.length) {
+        drop.cards.appendChild(hint);
+      } else {
+        drop.cards.insertBefore(hint, cards[drop.index]);
+      }
+    }
+
+    function findCardDrop(x, y) {
+      if (cardDrag?.ghost) cardDrag.ghost.style.display = "none";
+      const element = document.elementFromPoint(x, y);
+      if (cardDrag?.ghost) cardDrag.ghost.style.display = "";
+      const cards = element?.closest?.(".cards") || element?.closest?.(".column")?.querySelector(".cards") || nearestCards(x, y);
+      if (!cards) return null;
+      return {
+        cards,
+        columnId: cards.dataset.cards,
+        index: getDropIndex(cards, y)
+      };
+    }
+
+    function getDropIndex(cardsEl, y) {
+      const cards = [...cardsEl.querySelectorAll(".card:not(.dragging)")];
+      const before = cards.find((card) => {
+        const rect = card.getBoundingClientRect();
+        return y < rect.top + rect.height / 2;
+      });
+      return before ? cards.indexOf(before) : cards.length;
+    }
+
+    function nearestCards(x, y) {
+      const nearest = [...boardEl.querySelectorAll(".column")]
+        .map((column) => {
+          const rect = column.getBoundingClientRect();
+          const dx = x < rect.left ? rect.left - x : x > rect.right ? x - rect.right : 0;
+          const dy = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
+          return { column, distance: Math.hypot(dx, dy) };
+        })
+        .sort((a, b) => a.distance - b.distance)[0];
+      return nearest?.distance < 120 ? nearest.column.querySelector(".cards") : null;
+    }
+
+    function onColumnPointerDown(event) {
+      if (event.button !== 0) return;
+      beginColumnDrag(event.currentTarget, event.clientX, event.clientY);
+      addPointerListeners(onColumnPointerMove, onColumnPointerUp, onColumnPointerCancel);
+      event.preventDefault();
+    }
+
+    function onColumnMouseDown(event) {
+      if (columnDrag || event.button !== 0) return;
+      beginColumnDrag(event.currentTarget, event.clientX, event.clientY);
+      window.addEventListener("mousemove", onColumnPointerMove, { passive: false });
+      window.addEventListener("mouseup", onColumnPointerUp);
+      event.preventDefault();
+    }
+
+    function onColumnTouchStart(event) {
+      if (columnDrag) return;
+      const touch = event.touches[0];
+      if (!touch) return;
+      beginColumnDrag(event.currentTarget, touch.clientX, touch.clientY);
+      window.addEventListener("touchmove", onColumnTouchMove, { passive: false });
+      window.addEventListener("touchend", onColumnTouchEnd);
+      window.addEventListener("touchcancel", onColumnPointerCancel);
+      event.preventDefault();
+    }
+
+    function beginColumnDrag(grip, x, y) {
+      const column = grip.closest(".column");
+      const rect = column.getBoundingClientRect();
+      columnDrag = {
+        fromIndex: Number(grip.dataset.columnGrip),
+        startX: x,
+        startY: y,
+        column,
+        ghost: null,
+        width: rect.width,
+        active: false
+      };
+    }
+
+    function onColumnPointerMove(event) {
+      if (!columnDrag) return;
+      const distance = Math.hypot(event.clientX - columnDrag.startX, event.clientY - columnDrag.startY);
+      if (!columnDrag.active && distance < 4) return;
+      if (!columnDrag.active) startColumnDrag(event);
+      moveColumnGhost(event.clientX, event.clientY);
+      showColumnDrop(event.clientX, event.clientY);
+      event.preventDefault();
+    }
+
+    function onColumnTouchMove(event) {
+      const touch = event.touches[0];
+      if (!touch) return;
+      onColumnPointerMove({
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        preventDefault: () => event.preventDefault()
+      });
+    }
+
+    function onColumnTouchEnd(event) {
+      const touch = event.changedTouches[0] || event.touches[0];
+      if (!touch) {
+        cleanupColumnDrag();
+        return;
+      }
+      onColumnPointerUp({ clientX: touch.clientX, clientY: touch.clientY });
+    }
+
+    function startColumnDrag(event) {
+      columnDrag.active = true;
+      columnDrag.column.classList.add("dragging");
+      columnDrag.ghost = columnDrag.column.cloneNode(true);
+      columnDrag.ghost.classList.add("column-ghost");
+      columnDrag.ghost.style.setProperty("--ghost-width", `${columnDrag.width}px`);
+      document.body.appendChild(columnDrag.ghost);
+      document.body.classList.add("dragging-now");
+      moveColumnGhost(event.clientX, event.clientY);
+    }
+
+    function onColumnPointerUp(event) {
+      if (!columnDrag) return cleanupColumnDrag();
+      const targetIndex = columnDrag.active ? findColumnDrop(event.clientX, event.clientY) : -1;
+      const fromIndex = columnDrag.fromIndex;
+      cleanupColumnDrag();
+      if (targetIndex < 0 || targetIndex === fromIndex) return;
+      moveColumn(fromIndex, targetIndex);
+    }
+
+    function onColumnPointerCancel() {
+      cleanupColumnDrag();
+    }
+
+    function cleanupColumnDrag() {
+      removePointerListeners(onColumnPointerMove, onColumnPointerUp, onColumnPointerCancel);
+      window.removeEventListener("mousemove", onColumnPointerMove);
+      window.removeEventListener("mouseup", onColumnPointerUp);
+      window.removeEventListener("touchmove", onColumnTouchMove);
+      window.removeEventListener("touchend", onColumnTouchEnd);
+      window.removeEventListener("touchcancel", onColumnPointerCancel);
+      columnDrag?.column.classList.remove("dragging");
+      columnDrag?.ghost?.remove();
+      boardEl.querySelectorAll(".column").forEach((column) => column.classList.remove("column-over"));
+      document.body.classList.remove("dragging-now");
+      columnDrag = null;
+    }
+
+    function moveColumn(fromIndex, targetIndex) {
+      const [moved] = board.splice(fromIndex, 1);
+      const adjusted = fromIndex < targetIndex ? targetIndex - 1 : targetIndex;
+      board.splice(Math.max(0, adjusted), 0, moved);
+      renumberGroups();
+      saveBoard();
+      render();
+    }
+
+    function moveColumnGhost(x, y) {
+      if (!columnDrag?.ghost) return;
+      columnDrag.ghost.style.left = `${x}px`;
+      columnDrag.ghost.style.top = `${y}px`;
+    }
+
+    function showColumnDrop(x, y) {
+      boardEl.querySelectorAll(".column").forEach((column) => column.classList.remove("column-over"));
+      const index = findColumnDrop(x, y);
+      if (index < 0) return;
+      boardEl.querySelectorAll(".column")[index]?.classList.add("column-over");
+    }
+
+    function findColumnDrop(x, y) {
+      if (columnDrag?.ghost) columnDrag.ghost.style.display = "none";
+      const element = document.elementFromPoint(x, y);
+      if (columnDrag?.ghost) columnDrag.ghost.style.display = "";
+      const column = element?.closest?.(".column");
+      if (column) return [...boardEl.querySelectorAll(".column")].indexOf(column);
+      const nearest = [...boardEl.querySelectorAll(".column")]
+        .map((item, index) => {
+          const rect = item.getBoundingClientRect();
+          return { index, distance: Math.hypot(rect.left + rect.width / 2 - x, rect.top + rect.height / 2 - y) };
+        })
+        .sort((a, b) => a.distance - b.distance)[0];
+      return nearest?.distance < 280 ? nearest.index : -1;
+    }
+
+    function moveGhost(ghost, x, y) {
+      if (!ghost) return;
+      ghost.style.left = `${x}px`;
+      ghost.style.top = `${y}px`;
+    }
+
+    function addPointerListeners(move, up, cancel) {
+      window.addEventListener("pointermove", move, { passive: false });
+      window.addEventListener("pointerup", up);
+      window.addEventListener("pointercancel", cancel);
+    }
+
+    function removePointerListeners(move, up, cancel) {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", cancel);
+    }
+
+    function toggleSet(set, name) {
+      if (set.has(name)) set.delete(name);
+      else set.add(name);
+    }
+
+    function clearInvalidRotations() {
+      let changed = false;
+      [...rotationNames].forEach((name) => {
+        const valid = board.some((column) => column.id !== "waiting" && column.cards[1] === name && column.cards.length > 2);
+        if (!valid) {
+          rotationNames.delete(name);
+          changed = true;
+        }
+      });
+      if (changed) saveNameSet(rotationKey, rotationNames);
+    }
+
+    function renumberGroups() {
+      let number = 1;
+      board.forEach((column) => {
+        if (column.id === "waiting") {
+          column.title = "대기자";
+          return;
+        }
+        column.title = `${number}조`;
+        number += 1;
+      });
+    }
+
+    function buildExportText() {
+      const total = board.reduce((sum, column) => sum + column.cards.length, 0);
+      const groups = board
+        .filter((column) => column.id !== "waiting")
+        .map((column) => {
+          const rows = column.cards.map((name, index) => {
+            const tags = [];
+            if (index === 0) tags.push("조장");
+            if (index === column.cards.length - 1) tags.push("후미");
+            if (femaleNames.has(name)) tags.push("👩");
+            if (rotationNames.has(name) && index === 1) tags.push("로테이션");
+            return `${index + 1}. ${name}${tags.length ? ` (${tags.join(", ")})` : ""}`;
+          }).join("\n");
+          return `[${column.title}] ${column.cards.length}명\n${rows}`;
+        })
+        .join("\n\n");
+      const waiting = board.find((column) => column.id === "waiting");
+      const waitingText = waiting?.cards.length
+        ? `\n\n[대기자] ${waiting.cards.length}명\n${waiting.cards.map((name, index) => `${index + 1}. ${name}`).join("\n")}`
+        : "";
+      return `자전거 조편성 / 총 ${total}명\n\n${groups}${waitingText}`;
+    }
+
+    function openExport(title, text) {
+      exportTitle.textContent = title;
+      exportText.value = text;
+      exportPanel.classList.add("open");
+      exportPanel.setAttribute("aria-hidden", "false");
+      exportText.focus();
+      exportText.select();
+    }
+
+    function closeExport() {
+      exportPanel.classList.remove("open");
+      exportPanel.setAttribute("aria-hidden", "true");
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (_) {
+        exportText.focus();
+        exportText.select();
+        return document.execCommand("copy");
+      }
+    }
+
+    function loadBoard() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(boardKey));
+        if (Array.isArray(saved) && saved.every((column) => column.id && Array.isArray(column.cards))) return saved;
+      } catch (_) {}
+      return structuredClone(initialBoard);
+    }
+
+    function saveBoard() {
+      localStorage.setItem(boardKey, JSON.stringify(board));
+    }
+
+    function loadNameSet(key, fallback) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(key));
+        if (Array.isArray(saved)) return new Set(saved.map(cleanName).filter(Boolean));
+      } catch (_) {}
+      return new Set(fallback);
+    }
+
+    function saveNameSet(key, set) {
+      localStorage.setItem(key, JSON.stringify([...set]));
+    }
+
+    function saveAll() {
+      saveBoard();
+      saveNameSet(rotationKey, rotationNames);
+      saveNameSet(femaleKey, femaleNames);
+    }
+
+    function cleanName(value) {
+      return String(value || "").trim().replace(/\s+/g, " ");
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function showToast(message) {
+      toastEl.textContent = message;
+      toastEl.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toastEl.classList.remove("show"), 1800);
+    }
+  </script>
+</body>
+</html>
